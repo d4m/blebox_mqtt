@@ -1,0 +1,21 @@
+{
+  "name": "blebox_mqtt",
+  "version": "1.0.0",
+  "description": "MQTT wrapper for BleBox devices",
+  "main": "server.js",
+  "license": "MIT",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "defaults-deep": "^0.2.4",
+    "express": "^4.17.1",
+    "js-yaml": "^3.13.1",
+    "moment": "^2.24.0",
+    "mqtt": "^3.0.0",
+    "request": "^2.88.0",
+    "utf8": "^3.0.0"
+  }
+}

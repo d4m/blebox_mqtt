@@ -1,0 +1,11 @@
+http:
+
+mqtt:
+  broker: 127.0.0.1
+  discovery: true
+  discovery_prefix: homeassistant
+
+log:
+
+#blebox:
+#  - ip: 192.168.5.111
