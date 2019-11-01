@@ -16,5 +16,5 @@ $ docker build https://github.com/d4m/blebox_mqtt.git -t d4m/blebox_mqtt
 
 #### Uruchomienie kontenera:
 ```
-$ docker run --name blebox_mqtt -v blebox_mqtt_config:/config -e TZ="Europe/Paris" -p 3000:3000 -d d4m/blebox_mqtt
+$ docker run --name blebox_mqtt -v blebox_mqtt_config:/config -e TZ="Europe/Warsaw" -p 3000:3000 -d d4m/blebox_mqtt
 ```
