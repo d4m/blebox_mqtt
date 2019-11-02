@@ -3,6 +3,7 @@
 #### Obsługiwane urządzenia:
 - switchBox
 - switchBoxD
+- wLightBox
 
 #### Funkcjonalności:
 - Intergracja MQTT z Home Assistantem (MQTT Discovery - automatyczne dodawanie encji w HA).

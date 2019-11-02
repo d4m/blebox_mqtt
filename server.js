@@ -7,7 +7,7 @@ const Mqtt = require('./mqtt.js');
 const Blebox = require('./blebox.js');
 
 let devicesInitialized = false;
-let bleboxRelays = {}, bleboxInputs = {};
+let bleboxRelays = {}, bleboxLights = {}, bleboxInputs = {};
 
 const mqtt = new Mqtt({
     host: config.mqtt.broker,
@@ -22,10 +22,10 @@ if(config.http)
         log('http', `Server listen on ${config.http.bind}:${config.http.port}`);
     }).on('error', error => {
         let message = error.message;
-    
+
         if(error.errno == 'EADDRINUSE')
             message = `Address ${config.http.bind}:${config.http.port} alredy in use.`
-    
+
         log('error', 'HTTP Server error.', message);
         process.exit(0);
     });
@@ -80,17 +80,22 @@ mqtt.client.on('message', (topic, message) => {
 
     message = String(message);
 
-    if(type == 'switch')
-    {
-        try {
+    try {
+        if(type == 'switch')
+        {
             let relay = bleboxRelays[entity_id].relay;
             relay.setState(message == 'ON' ? true : false);
-        } catch(e) {
-            return;
         }
-    }
-    else
+        if(type == 'light')
+        {
+            let light = bleboxLights[entity_id];
+            light.setState(JSON.parse(message));
+        }
+        else
+            return;
+    } catch(e) {
         return;
+    }
 
     log('mqtt', 'Message received', topic, message);
 });
@@ -109,12 +114,20 @@ class Hass {
 
     sendState(state) {
         mqtt.publish(this.state_topic, state, {retain: true});
+        this.sendStateLog(state);
+    }
+
+    sendStateLog(state) {
         log('blebox', `${this.device.type} "${this.name}" changed state to ${state}`);
         log('mqtt', 'Send State', this.state_topic, `'${state}'`);
     }
 
     sendAvail(avail) {
         mqtt.publish(this.availability_topic, avail, {retain: true});
+        this.sendAvailLog(avail);
+    }
+
+    sendAvailLog(avail) {
         log('blebox', `${this.device.type} "${this.name}" changed status to ${avail}`);
         log('mqtt', 'Send Status', this.state_topic, `'${avail}'`);
     }
@@ -245,6 +258,83 @@ class HassSwitch extends Hass {
     }
 }
 
+class HassLight extends Hass {
+
+    constructor(switchbox, device) {
+        super();
+
+        this.switchbox = switchbox;
+        this.device = device;
+
+        this.setName();
+        this.setUniqueId();
+        this.setTopics();
+
+        if(config.mqtt.discovery && switchbox.discovery)
+            this.sendDiscovery();
+
+        device.on('state', (state) => {
+            this.sendState(state);
+        });
+
+        device.on('avail', (avail) => {
+            avail = avail ? 'online' : 'offline';
+            this.sendAvail(avail);
+        });
+    }
+
+    sendStateLog(state) {
+        log('blebox', `${this.device.type} "${this.name}" changed state`);
+        log('mqtt', 'Send State', this.state_topic, state);
+    }
+
+    setState(state) {
+        this.device.setState(state);
+    }
+
+    setUniqueId() {
+        this.unique_id = `${this.device.type}_${this.device.id}`;
+    }
+
+    setName() {
+        this.name = this.device.name;
+    }
+
+    setTopics() {
+        this.discovery_topic = `${config.mqtt.discovery_prefix}/light/${this.unique_id}/config`;
+        this.state_topic = `blebox/light/${this.unique_id}/state`;
+        this.command_topic = `blebox/light/${this.unique_id}/command`;
+        this.availability_topic = `blebox/light/${this.unique_id}/status`;
+    }
+
+    setDiscovery(){
+        this.discovery_message = {
+            name: this.name,
+            schema: 'json',
+            brightness: true,
+            rgb: this.device.is_rgb,
+            white_value: this.device.is_white,
+            effect: this.device.effects ? true : false,
+            unique_id: this.unique_id,
+            state_topic: this.state_topic,
+            command_topic: this.command_topic,
+            availability_topic: this.availability_topic,
+            device: {
+                identifiers: `${this.device.type}_${this.device.id}`,
+                model: this.device.type,
+                sw_version: this.device.fv,
+                name: this.device.name,
+                manufacturer: this.manufacturer,
+            },
+        };
+
+        if(this.device.effects)
+        {
+            this.discovery_message.effect_list = Object.keys(this.device.effects);
+        }
+    }
+}
+
 let devicesInit = () => {
 
     if(devicesInitialized)
@@ -259,6 +349,7 @@ let devicesInit = () => {
 
         blebox.on('switchBox', device => onSwitchBox(blebox_config, device));
         blebox.on('switchBoxD', device => onSwitchBox(blebox_config, device));
+        blebox.on('wLightBox', device => onWlightBox(blebox_config, device));
 
         blebox.on('connectionError', error => {
             log('blebox', `Could not connect to host ${error.host}. Retrying...`);
@@ -266,6 +357,20 @@ let devicesInit = () => {
     });
 
     devicesInitialized = true;
+}
+
+
+let onWlightBox = (switchbox, device) => {
+
+    switchbox = merge(switchbox, {
+        discovery: true,
+        inputs: true,
+    });
+
+    log('blebox', `New device added from ${device.ip}. ${device.type} "${device.name}"`);
+
+    let hassLight = new HassLight(switchbox, device);
+    bleboxLights[hassLight.unique_id] = hassLight;
 }
 
 let onSwitchBox = (switchbox, device) => {
