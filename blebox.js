@@ -34,24 +34,48 @@ class Blebox extends EventEmitter {
     }
 
     init() {
-        return new Promise((resolve, reject) => {
+        let init = new Promise((resolve, reject) => {
 
             request(this.host, '/api/device/state').then((data) => {
 
-                if(data.device.type == 'switchBox' || data.device.type == 'switchBoxD')
+                if(!data.device.ip)
+                {
+                    setTimeout(() => {
+                        reject({host: this.host});
+                    }, 5000)
+                }
+                else
                 {
                     let device;
 
-                    if(data.device.type == 'switchBoxD')
-                        device = new switchBoxD(data.device, this.interval);
-                    else
-                        device = new switchBox(data.device, this.interval);
+                    switch(data.device.type) {
+                        case 'switchBox':
+                            device = new switchBox(data.device, this.interval);
+                            break;
+                        case 'switchBoxD':
+                            device = new switchBoxD(data.device, this.interval);    
+                            break;
+                        default:
+                            device = null;
+                    }
 
-                    this.emit('switchBox', device);
-                    resolve(device);
+                    if(device)
+                        resolve(device);
                 }
+            }).catch((error) => {
+                reject({host: this.host});
+            });
+        });
 
-            }).catch((error) => reject(error));
+        init.then(device => {
+            device.init();
+            this.emit(device.type, device);
+        }).catch(error => {
+            this.emit('connectionError', {
+                host: error.host,
+            });
+
+            this.init();
         });
     }
 }
@@ -128,8 +152,6 @@ class switchBoxBase extends EventEmitter {
         this.id = device.id;
         this.ip = device.ip;
         this.relays = [];
-
-        this.init();
     }
 
     init() {
@@ -156,7 +178,6 @@ class switchBoxD extends switchBoxBase {
     update() {
         return new Promise((resolve, reject) => {
             this.request('/api/relay/state').then((response) => {
-
                 this.relays[0].name = response.relays[0].name;
                 this.relays[1].name = response.relays[1].name;
     
@@ -165,8 +186,8 @@ class switchBoxD extends switchBoxBase {
                 
                 resolve(this.relays);
             }).catch((error) => {
-                this.relays[0].update(null, false);
-                this.relays[1].update(null, false);
+                this.relays[0].update(this.relays[0].state, false);
+                this.relays[1].update(this.relays[1].state, false);
 
                 resolve(this.relays);
             });
@@ -201,7 +222,7 @@ class switchBox extends switchBoxBase {
         this.request('/api/relay/state').then((response) => {
             this.relays[0].update(response.relays[0].state, true);
         }).catch((error) => {
-            this.relays[0].update(null, false);
+            this.relays[0].update(this.relays[0].state, false);
         });
     }
 

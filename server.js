@@ -52,7 +52,7 @@ mqtt.on('connect', () => {
     devicesInit();
 });
 
-mqtt.client.subscribe(['blebox/#', 'test'], (err, granted) => {
+mqtt.client.subscribe('blebox/#', (err, granted) => {
 
     if(err) {
         log('mqtt', `Subscribe error. ${err}`);
@@ -245,6 +245,29 @@ class HassSwitch extends Hass {
     }
 }
 
+let devicesInit = () => {
+
+    if(devicesInitialized)
+        return;
+
+    config.blebox.forEach(blebox_config => {
+
+        let blebox = new Blebox({
+            host: blebox_config.ip,
+            interval: blebox_config.interval || 5,
+        });
+
+        blebox.on('switchBox', device => onSwitchBox(blebox_config, device));
+        blebox.on('switchBoxD', device => onSwitchBox(blebox_config, device));
+
+        blebox.on('connectionError', error => {
+            log('blebox', `Could not connect to host ${error.host}. Retrying...`);
+        });
+    });
+
+    devicesInitialized = true;
+}
+
 let onSwitchBox = (switchbox, device) => {
 
     switchbox = merge(switchbox, {
@@ -305,24 +328,6 @@ let getBinarySensors = (device) => {
 
         }).catch((error) => reject(error));
     });
-}
-
-let devicesInit = () => {
-
-    if(devicesInitialized)
-        return;
-
-    config.blebox.forEach(blebox_config => {
-
-        let blebox = new Blebox({
-            host: blebox_config.ip,
-            interval: blebox_config.interval || 5,
-        });
-
-        blebox.on('switchBox', device => onSwitchBox(blebox_config, device));
-    });
-
-    devicesInitialized = true;
 }
 
 let findInput = (ip, name) => {
