@@ -377,12 +377,16 @@ class switchBoxD extends switchBoxBase {
 class switchBox extends switchBoxBase {
 
     update() {
-        this.relays[0].name = this.device.deviceName;
+        this.relays[0].name = this.name;
 
-        this.request('/api/relay/state').then((response) => {
-            this.relays[0].update(response.relays[0].state, true);
-        }).catch((error) => {
-            this.relays[0].update(this.relays[0].state, false);
+        return new Promise((resolve, reject) => {
+            this.request('/api/relay/state').then((response) => {
+                this.relays[0].update(response[0].state, true);
+                resolve(this.relays);
+            }).catch((error) => {
+                this.relays[0].update(this.relays[0].state, false);
+                resolve(this.relays);
+            });
         });
     }
 

@@ -409,7 +409,10 @@ let getBinarySensors = (device) => {
     return new Promise((resolve, reject) => {
         device.request('/api/input/state').then((response) => {
 
-            let inputs = [response.inputs[0].actions, response.inputs[1].actions];
+            let inputs = [response.inputs[0].actions, []];
+
+            if(device.type == 'switchBoxD')
+                inputs[1] = response.inputs[1].actions;
 
             inputs = inputs.map((inputs, input_id) => {
 
