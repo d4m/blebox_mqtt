@@ -9,7 +9,7 @@
   },
   "author": "",
   "dependencies": {
-    "axios": "^0.21.1",
+    "axios": "^0.21.2",
     "color-convert": "^2.0.1",
     "defaults-deep": "^0.2.4",
     "express": "^4.17.1",
