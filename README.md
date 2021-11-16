@@ -28,6 +28,7 @@ log: # jeśli ustawione, na STDOUT będzie wypisywany log serwera.
 
 blebox:
   - ip: 192.168.5.111 # adres IP urządzenia BleBox
+    component: light # typ komponentu jaki zostanie dodany do HA, dozwolone opcje do "switch" oraz "light", domyślnie "switch"
     discovery: true # indywidualne ustawienie MQTT discovery, domyślnie true
     inputs: true # tylko dla urządzeń switchBox(D), domyślnie true. Jeśli false to nie będą tworzone encje binary_sensor dla akcji.
   - ip: 192.168.5.112

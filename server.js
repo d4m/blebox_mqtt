@@ -81,6 +81,9 @@ mqtt.client.on('message', (topic, message) => {
     message = String(message);
 
     try {
+        if(type == 'light' && bleboxRelays[entity_id] !== undefined && bleboxRelays[entity_id].switchbox.component == 'light')
+            type = 'switch';
+
         if(type == 'switch')
         {
             let relay = bleboxRelays[entity_id].relay;
@@ -234,10 +237,10 @@ class HassSwitch extends Hass {
     }
 
     setTopics() {
-        this.discovery_topic = `${config.mqtt.discovery_prefix}/switch/${this.unique_id}/config`;
-        this.state_topic = `blebox/switch/${this.unique_id}/state`;
-        this.availability_topic = `blebox/switch/${this.unique_id}/status`;
-        this.command_topic = `blebox/switch/${this.unique_id}/command`;
+        this.discovery_topic = `${config.mqtt.discovery_prefix}/${this.switchbox.component}/${this.unique_id}/config`;
+        this.state_topic = `blebox/${this.switchbox.component}/${this.unique_id}/state`;
+        this.availability_topic = `blebox/${this.switchbox.component}/${this.unique_id}/status`;
+        this.command_topic = `blebox/${this.switchbox.component}/${this.unique_id}/command`;
     }
 
     setDiscovery(){
@@ -376,9 +379,13 @@ let onWlightBox = (switchbox, device) => {
 let onSwitchBox = (switchbox, device) => {
 
     switchbox = merge(switchbox, {
+        component: 'switch',
         discovery: true,
         inputs: true,
     });
+
+    if(!['switch', 'light'].includes(switchbox.component))
+        switchbox.component = 'switch';
 
     device.on('ready', (relays) => {
         log('blebox', `New device added from ${device.ip}. ${device.type} "${device.name}"`);
