@@ -414,12 +414,25 @@ let onSwitchBox = (switchbox, device) => {
 let getBinarySensors = (device) => {
 
     return new Promise((resolve, reject) => {
-        device.request('/api/input/state').then((response) => {
 
-            let inputs = [response.inputs[0].actions, []];
+        let url = parseInt(device.apiLevel) >= 20190808 ? '/api/actions/state' : '/api/input/state';
+        
+        device.request(url).then((response) => {
+            let inputs = [[], []];
 
-            if(device.type == 'switchBoxD')
-                inputs[1] = response.inputs[1].actions;
+            if(response.actions)
+            {
+                response.actions.forEach((action) => {
+                    inputs[action.input].push(action);
+                });
+            }
+            else
+            {
+                inputs[0] = response.inputs[0].actions;
+
+                if(device.type == 'switchBoxD')
+                    inputs[1] = response.inputs[1].actions;
+            }
 
             inputs = inputs.map((inputs, input_id) => {
 
