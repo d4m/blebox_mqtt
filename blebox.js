@@ -337,7 +337,9 @@ class switchBoxD extends switchBoxBase {
 
     update() {
         return new Promise((resolve, reject) => {
-            this.request('/api/relay/state').then((response) => {
+            let url = parseInt(this.apiLevel) >= 20190808 ? '/api/relay/extended/state' : '/api/relay/state';
+
+            this.request(url).then((response) => {
                 this.relays[0].name = response.relays[0].name;
                 this.relays[1].name = response.relays[1].name;
     
