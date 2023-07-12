@@ -100,9 +100,11 @@ class switchBoxRelay extends EventEmitter {
     }
 
     init() {
-        this.emit('init', this);
-        this.emit('avail', this);
-        this.emit('state', this);
+        setTimeout(() => {
+            this.emit('init', this);
+            this.emit('avail', this);
+            this.emit('state', this);
+        }, 1000);
 
         this.initialized = true;
     }
